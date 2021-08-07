@@ -1,6 +1,6 @@
 # java-concurrency
 
-A collection of Java concurrency examples for personal use. Currently limited to Completable Futures.
+A collection of Java concurrency examples for personal use. Currently limited to Completable Futures invariants.
 
 ## Resources
 
