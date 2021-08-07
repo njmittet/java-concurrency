@@ -230,8 +230,8 @@ public class CompletableFutureTest {
         CompletableFuture<UserRating> userRatingCompletableFuture = userRatingResult.get();
         UserRating userRating = userRatingCompletableFuture.get();
 
-        assertEquals(USER_ID, userRating.getUserId());
-        assertEquals(USER_RATING, userRating.getUserRating());
+        assertEquals(USER_ID, userRating.userId());
+        assertEquals(USER_RATING, userRating.userRating());
     }
 
     /**
@@ -248,8 +248,8 @@ public class CompletableFutureTest {
         // hold of the final result.
         UserRating userRating = userRatingResult.get();
 
-        assertEquals(USER_ID, userRating.getUserId());
-        assertEquals(USER_RATING, userRating.getUserRating());
+        assertEquals(USER_ID, userRating.userId());
+        assertEquals(USER_RATING, userRating.userRating());
     }
 
     /**
@@ -298,46 +298,23 @@ public class CompletableFutureTest {
      * #chainCompletableFutureWithThenCompose()}
      */
     public CompletableFuture<UserRating> getUserRating(UserInfo userInfo) {
-        return CompletableFuture.supplyAsync(() -> new UserRating(userInfo.getUserId(), USER_RATING));
+        return CompletableFuture.supplyAsync(() -> new UserRating(userInfo.userId(), USER_RATING));
     }
 
     /**
-     * Helper class used by tests {@link #chainCompletableFutureWithThenApply} and {@link
+     * Record used by tests {@link #chainCompletableFutureWithThenApply} and {@link
      * #chainCompletableFutureWithThenCompose()}
      */
-    private static class UserInfo {
+    private record UserInfo(int userId) {
 
-        private final int userId;
-
-        UserInfo(int userId) {
-            this.userId = userId;
-        }
-
-        public int getUserId() {
-            return userId;
-        }
     }
 
     /**
-     * Helper class used by tests {@link #chainCompletableFutureWithThenApply} and {@link
+     * Record used by tests {@link #chainCompletableFutureWithThenApply} and {@link
      * #chainCompletableFutureWithThenCompose()}
      */
-    private static class UserRating {
+    private record UserRating(int userId, int userRating) {
 
-        private final int userId;
-        private final int userRating;
-
-        public UserRating(int userId, int userRating) {
-            this.userId = userId;
-            this.userRating = userRating;
-        }
-
-        public int getUserId() {
-            return userId;
-        }
-
-        public int getUserRating() {
-            return userRating;
-        }
     }
+
 }
