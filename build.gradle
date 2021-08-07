@@ -1,10 +1,20 @@
-apply plugin: 'java'
+plugins {
+    id 'java'
+}
 
 repositories {
     jcenter()
 }
 
+java.sourceCompatibility = JavaVersion.VERSION_11
+
 dependencies {
-    compile 'ch.qos.logback:logback-classic:1.2.3'
-    testCompile 'junit:junit:4.12'
+    implementation 'ch.qos.logback:logback-classic:1.2.3'
+
+    testImplementation(platform('org.junit:junit-bom:5.7.+'))
+    testImplementation('org.junit.jupiter:junit-jupiter')
+}
+
+test {
+    useJUnitPlatform()
 }
