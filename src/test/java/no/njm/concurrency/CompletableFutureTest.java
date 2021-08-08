@@ -253,6 +253,39 @@ public class CompletableFutureTest {
     }
 
     /**
+     * The thenCombine() method can be used to combine the result of one future with the result of another future.
+     * thenCombine() accepts both a completable future and a function with two arguments, which is used to process the
+     * result of both the completable futures. results:
+     */
+    @Test
+    public void combineCompletableFuturesWithThenCombine() throws ExecutionException, InterruptedException {
+        var combinedResult = CompletableFuture.supplyAsync(() -> "Hello")
+                .thenCombine(CompletableFuture.supplyAsync(() -> "World"),
+                        (firstFutureResult, secondFutureResult) -> firstFutureResult + " " + secondFutureResult)
+                .get();
+
+        assertEquals("Hello World", combinedResult);
+    }
+
+    /**
+     * A simpler variant of thenCombine() is thenAcceptBoth(), which can be used when the combined result of two futures
+     * can be used without being returned.
+     */
+    @Test
+    public void useResultFromCompletableFuturesWithThenAcceptBoth() throws ExecutionException, InterruptedException {
+        var completer = new Completer<String>();
+
+        CompletableFuture.supplyAsync(() -> "Hello")
+                .thenAcceptBoth(CompletableFuture.supplyAsync(() -> "World"),
+                        (firstFutureResult, secondFutureResult) ->
+                                completer.setCompleted(firstFutureResult + " " + secondFutureResult))
+                .get();
+
+        assertTrue(completer.isCompleted());
+        assertEquals("Hello World", completer.getCompletionValue());
+    }
+
+    /**
      * Helper method used by several tests.
      */
     private void logThread() {
@@ -260,7 +293,7 @@ public class CompletableFutureTest {
     }
 
     /**
-     * Helper class used by several tests.
+     * Helper class used by several tests when the completable future does not return a result.
      */
     private static class Completer<T> {
 
