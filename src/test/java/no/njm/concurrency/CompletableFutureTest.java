@@ -10,6 +10,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -222,11 +224,11 @@ public class CompletableFutureTest {
      */
     @Test
     public void chainCompletableFutureWithThenApply() throws ExecutionException, InterruptedException {
+        // thenApply() returns the nested futures, making it necessary to call get() twice in order to get hold of
+        // the final result.
         CompletableFuture<CompletableFuture<UserRating>> userRatingResult =
                 getUserInfo(USER_ID).thenApply(this::getUserRating);
 
-        // thenApply() returns the nested futures, making it necessary to call get() twice in order to get hold of
-        // the final result.
         CompletableFuture<UserRating> userRatingCompletableFuture = userRatingResult.get();
         UserRating userRating = userRatingCompletableFuture.get();
 
@@ -242,10 +244,10 @@ public class CompletableFutureTest {
      */
     @Test
     public void chainCompletableFutureWithThenCompose() throws ExecutionException, InterruptedException {
-        CompletableFuture<UserRating> userRatingResult = getUserInfo(USER_ID).thenCompose(this::getUserRating);
-
         // thenCompose() flattens the nested futures futures, making just a single get() necessary in order to get
         // hold of the final result.
+        CompletableFuture<UserRating> userRatingResult = getUserInfo(USER_ID).thenCompose(this::getUserRating);
+
         UserRating userRating = userRatingResult.get();
 
         assertEquals(USER_ID, userRating.userId());
@@ -254,17 +256,17 @@ public class CompletableFutureTest {
 
     /**
      * The thenCombine() method can be used to combine the result of one future with the result of another future.
-     * thenCombine() accepts both a completable future and a function with two arguments, which is used to process the
-     * result of both the completable futures. results:
      */
     @Test
     public void combineCompletableFuturesWithThenCombine() throws ExecutionException, InterruptedException {
-        var combinedResult = CompletableFuture.supplyAsync(() -> "Hello")
-                .thenCombine(CompletableFuture.supplyAsync(() -> "World"),
+        // thenCombine() accepts both a completable future and a function with two arguments, which is used to
+        // process the result of both the completable futures.
+        var combinedResult = CompletableFuture.supplyAsync(() -> "First")
+                .thenCombine(CompletableFuture.supplyAsync(() -> "Second"),
                         (firstFutureResult, secondFutureResult) -> firstFutureResult + " " + secondFutureResult)
                 .get();
 
-        assertEquals("Hello World", combinedResult);
+        assertEquals("First Second", combinedResult);
     }
 
     /**
@@ -273,16 +275,44 @@ public class CompletableFutureTest {
      */
     @Test
     public void useResultFromCompletableFuturesWithThenAcceptBoth() throws ExecutionException, InterruptedException {
+        // Using a custom class to verify that the last completion stage completed successfully.
         var completer = new Completer<String>();
 
-        CompletableFuture.supplyAsync(() -> "Hello")
-                .thenAcceptBoth(CompletableFuture.supplyAsync(() -> "World"),
+        CompletableFuture.supplyAsync(() -> "First")
+                .thenAcceptBoth(CompletableFuture.supplyAsync(() -> "Second"),
                         (firstFutureResult, secondFutureResult) ->
                                 completer.setCompleted(firstFutureResult + " " + secondFutureResult))
                 .get();
 
         assertTrue(completer.isCompleted());
-        assertEquals("Hello World", completer.getCompletionValue());
+        assertEquals("First Second", completer.getCompletionValue());
+    }
+
+    /**
+     * Execute multiple completable futures in parallel and wait for all of them to execute and then process their
+     * combined results.
+     */
+    @Test
+    public void runMultipleCompletableFuturesInParallel() throws ExecutionException, InterruptedException {
+        CompletableFuture<String> firstFuture = CompletableFuture.supplyAsync(() -> "First");
+        CompletableFuture<String> secondFuture = CompletableFuture.supplyAsync(() -> "Second");
+        CompletableFuture<String> thirdFuture = CompletableFuture.supplyAsync(() -> "Third");
+
+        // the return type of the CompletableFuture.allOf() is a CompletableFuture<Void>, hence it does not return
+        // the result of the executed futures.
+        CompletableFuture<Void> combinedResult = CompletableFuture.allOf(firstFuture, secondFuture, thirdFuture);
+        combinedResult.get();
+
+        assertTrue(firstFuture.isDone());
+        assertTrue(secondFuture.isDone());
+        assertTrue(thirdFuture.isDone());
+
+        // Get and combine the results from the futures.
+        String joinedResult = Stream.of(firstFuture, secondFuture, thirdFuture)
+                .map(CompletableFuture::join)
+                .collect(Collectors.joining(" "));
+
+        assertEquals("First Second Third", joinedResult);
     }
 
     /**
